@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -22,6 +23,7 @@ class RefreshSpotifyTokenMiddleware
         if (Auth::check() && Auth::user()->spotifyAccountConnected()) {
             $spotifyPayload = Auth::user()->spotify_payload;
 
+            if (isset($spotifyPayload['expiration_date']) && Carbon::parse($spotifyPayload['expiration_date'])->isPast()) {
                 $response = Http::asForm()
                     ->withBasicAuth(config('services.spotify.client_id'), config('services.spotify.client_secret'))
                     ->post('https://accounts.spotify.com/api/token', [
@@ -33,10 +35,12 @@ class RefreshSpotifyTokenMiddleware
                 DB::table('users')
                     ->where('id', Auth::user()->id)
                     ->update([
+                        'spotify_payload->expiration_date' => Carbon::now()->addSeconds($response['expires_in']),
                         'spotify_payload->access_token' => $response['access_token'],
                     ]);
 
                 Auth::user()->touch();
+            }
         }
 
         return $next($request);

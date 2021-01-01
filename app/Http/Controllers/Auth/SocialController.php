@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -89,7 +90,7 @@ class SocialController extends Controller
             'provider_id' => $user->getId(),
             'access_token' => $user->token,
             'refresh_token' => $user->refreshToken,
-            'expires_in' => $user->expiresIn,
+            'expiration_date' => Carbon::now()->addSeconds($user->expiresIn),
         ];
 
         Auth::user()->update([
